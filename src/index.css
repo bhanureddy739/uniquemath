@@ -25,11 +25,11 @@
 
 @layer components {
   .btn-primary {
-    @apply px-6 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg;
+    @apply px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg;
   }
   
   .card {
-    @apply bg-white rounded-3xl p-6 shadow-sm border-4 border-transparent hover:border-math-purple transition-all duration-300;
+    @apply bg-white rounded-3xl p-4 sm:p-6 shadow-sm border-4 border-transparent hover:border-math-purple transition-all duration-300;
   }
 }
 

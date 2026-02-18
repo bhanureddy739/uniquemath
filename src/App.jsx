@@ -30,13 +30,13 @@ function App() {
           <motion.h1
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="text-5xl font-extrabold text-soft-text mb-4"
+            className="text-4xl sm:text-6xl font-extrabold text-soft-text mb-4 drop-shadow-sm"
             onClick={() => setActiveGame(null)}
             style={{ cursor: 'pointer' }}
           >
             UniqueMath 🌈
           </motion.h1>
-          <p className="text-xl text-soft-text opacity-80">
+          <p className="text-lg sm:text-2xl text-soft-text opacity-80 px-4">
             Learn math in a fun and calm way!
           </p>
         </header>

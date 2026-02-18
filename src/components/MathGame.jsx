@@ -448,11 +448,11 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                             </div>
                         </div>
 
-                        <div className="text-6xl font-black mb-12 flex justify-center items-center gap-4">
+                        <div className="text-4xl sm:text-7xl font-black mb-12 flex flex-wrap justify-center items-center gap-2 sm:gap-4 px-2">
                             {type === 'factorial' ? (
                                 <span>{question.a}{question.op} = ?</span>
                             ) : type === 'prime' ? (
-                                <span>Is {question.a} {question.op}</span>
+                                <span className="text-3xl sm:text-5xl text-center">Is {question.a} {question.op}</span>
                             ) : (
                                 <>
                                     <span>{question.a}</span>
@@ -464,30 +464,30 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                             )}
                         </div>
 
-                        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-6">
+                        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
                             {type === 'prime' ? (
-                                <div className="flex gap-4">
+                                <div className="flex gap-4 w-full justify-center">
                                     {['yes', 'no'].map(choice => (
                                         <button
                                             key={choice}
                                             disabled={status !== 'idle'}
                                             type="button"
                                             onClick={() => { setUserInput(choice); }}
-                                            className={`px-8 py-4 rounded-2xl font-bold capitalize transition-all border-4 ${userInput === choice ? 'bg-math-purple-dark text-white border-math-purple-dark scale-95 shadow-inner' : 'bg-math-purple text-math-purple-dark border-math-purple/50 hov:bg-math-purple/70'}`}
+                                            className={`flex-1 max-w-[150px] py-4 sm:py-6 rounded-2xl font-bold capitalize transition-all border-4 ${userInput === choice ? 'bg-math-purple-dark text-white border-math-purple-dark scale-95 shadow-inner' : 'bg-math-purple text-math-purple-dark border-math-purple/50 hov:bg-math-purple/70'}`}
                                         >
                                             {choice}
                                         </button>
                                     ))}
                                 </div>
                             ) : currentQuestionType === 'mcq' ? (
-                                <div className="grid grid-cols-2 gap-4 w-full max-w-md px-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full px-4">
                                     {options.map((opt, i) => (
                                         <button
                                             key={i}
                                             disabled={status !== 'idle'}
                                             type="button"
                                             onClick={() => setUserInput(opt.toString())}
-                                            className={`px-6 py-6 rounded-3xl font-black text-2xl transition-all border-4 ${userInput === opt.toString() ? 'bg-math-purple-dark text-white border-math-purple-dark scale-95 shadow-inner' : 'bg-white text-math-purple-dark border-math-purple hov:border-math-purple-dark hov:bg-math-purple/10'}`}
+                                            className={`px-4 py-5 sm:py-6 rounded-3xl font-black text-2xl transition-all border-4 ${userInput === opt.toString() ? 'bg-math-purple-dark text-white border-math-purple-dark scale-95 shadow-inner' : 'bg-white text-math-purple-dark border-math-purple hov:border-math-purple-dark hov:bg-math-purple/10'}`}
                                         >
                                             {opt}
                                         </button>
@@ -500,7 +500,7 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                                     type="number"
                                     value={userInput}
                                     onChange={(e) => setUserInput(e.target.value)}
-                                    className="text-4xl w-40 text-center py-4 rounded-3xl border-4 border-math-blue focus:border-math-purple outline-none transition-all bg-math-blue/10 font-black text-math-purple-dark"
+                                    className="text-4xl w-full max-w-[200px] text-center py-4 rounded-3xl border-4 border-math-blue focus:border-math-purple outline-none transition-all bg-math-blue/10 font-black text-math-purple-dark"
                                     placeholder="..."
                                 />
                             )}
@@ -509,7 +509,7 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                                 disabled={status === 'correct' || status === 'wrong'}
                                 type={status === 'showing-result' ? 'button' : 'submit'}
                                 onClick={status === 'showing-result' ? (isMixedMode ? () => onFinish(false) : handleNext) : undefined}
-                                className={`btn-primary text-white text-xl w-full max-w-xs transition-transform ${status === 'correct' ? 'bg-green-600' :
+                                className={`btn-primary text-white text-xl w-full max-w-md mx-4 transition-transform ${status === 'correct' ? 'bg-green-600' :
                                     status === 'wrong' ? 'bg-red-600' :
                                         status === 'showing-result' ? 'bg-math-orange-dark' : 'bg-math-purple-dark'
                                     }`}
