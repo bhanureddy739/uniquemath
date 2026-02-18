@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-math-blue: #E3F2FD;
+  --color-math-green: #E8F5E9;
+  --color-math-yellow: #FFF9C4;
+  --color-math-purple: #F3E5F5;
+  --color-math-orange: #FFF3E0;
+  
+  --color-math-blue-dark: #1565C0;
+  --color-math-green-dark: #2E7D32;
+  --color-math-yellow-dark: #F9A825;
+  --color-math-purple-dark: #7B1FA2;
+  --color-math-orange-dark: #EF6C00;
+  
+  --color-soft-text: #263238;
+  --font-nunito: "Nunito", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-nunito text-soft-text bg-math-blue min-h-screen overflow-x-hidden;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg;
+  }
+  
+  .card {
+    @apply bg-white rounded-3xl p-6 shadow-sm border-4 border-transparent hover:border-math-purple transition-all duration-300;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-math-blue;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-math-purple/50 rounded-full hover:bg-math-purple/70;
+}
+
+/* Animations */
+.bounce-slow {
+  animation: bounce 3s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
