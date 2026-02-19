@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, CheckCircle2, AlertCircle, PlayCircle, BookOpen, ArrowRight, Lightbulb, Trophy, RotateCcw, Calculator } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, PlayCircle, BookOpen, ArrowRight, Lightbulb, Trophy, RotateCcw, Calculator, Camera } from 'lucide-react'
 import confetti from 'canvas-confetti'
+import { captureScreen } from './ScreenCapture'
 import MathGame from './MathGame'
 import GeometryGame from './GeometryGame'
 
-const MixedGame = ({ onBack }) => {
+const MixedGame = ({ onBack, quietMode = false, onReward }) => {
     const [gameState, setGameState] = useState('learn') // learn, setup, play, results
     const [difficulty, setDifficulty] = useState('easy')
     const [totalQuestions, setTotalQuestions] = useState(5)
@@ -30,6 +31,15 @@ const MixedGame = ({ onBack }) => {
         setCurrentModule(randomModule)
     }
 
+    const getScoreFeedback = (score, total) => {
+        const p = (score / total) * 100
+        if (p === 100) return { title: "Challenge Master! 🌈", msg: "You've conquered every topic with perfection!" }
+        if (p >= 80) return { title: "Outstanding! 🌟", msg: "Your versatility across all math areas is amazing!" }
+        if (p >= 60) return { title: "Solid Work! 💪", msg: "You're handling the mix of problems really well!" }
+        if (p >= 40) return { title: "Good Progress! ✨", msg: "Switching between topics is hard, but you're doing it!" }
+        return { title: "Keep Trying! 🚀", msg: "The mixed challenge is tough, but practice will make it easier!" }
+    }
+
     const handleQuestionFinish = (isCorrect) => {
         const newResults = [...results, { index: currentQuestionIndex, isCorrect }]
         setResults(newResults)
@@ -37,8 +47,8 @@ const MixedGame = ({ onBack }) => {
 
         if (currentQuestionIndex + 1 >= totalQuestions) {
             setGameState('results')
-            if (score + (isCorrect ? 1 : 0) === totalQuestions) {
-                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } })
+            if (score + (isCorrect ? 1 : 0) === totalQuestions && !quietMode) {
+                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#F0F7FF', '#F2FAF3', '#FFFDF0', '#F9F5FA'] })
             }
         } else {
             setCurrentQuestionIndex(i => i + 1)
@@ -49,10 +59,15 @@ const MixedGame = ({ onBack }) => {
     if (gameState === 'results') {
         const percentage = Math.round((score / totalQuestions) * 100)
         return (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-xl mx-auto card p-10 text-center border-b-8 border-math-green-dark">
+            <motion.div
+                id="mixed-game-results"
+                initial={quietMode ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="max-w-xl mx-auto card p-10 text-center border-b-8 border-math-green-dark"
+            >
                 <Trophy size={80} className="mx-auto text-math-yellow-dark mb-6" />
-                <h2 className="text-4xl font-black mb-2 text-soft-text">Challenge Complete!</h2>
-                <p className="text-xl text-soft-text/80 mb-8">You finished the {difficulty} level</p>
+                <h2 className="text-4xl font-black mb-2 text-soft-text">{getScoreFeedback(score, totalQuestions).title}</h2>
+                <p className="text-xl text-soft-text/80 mb-8">{getScoreFeedback(score, totalQuestions).msg}</p>
 
                 <div className="bg-math-blue/30 rounded-3xl p-8 mb-8">
                     <div className="text-6xl font-black text-math-purple-dark mb-2">{score} / {totalQuestions}</div>
@@ -60,12 +75,27 @@ const MixedGame = ({ onBack }) => {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    <button onClick={startGame} className="btn-primary bg-math-purple-dark text-white py-4 flex items-center justify-center gap-2">
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => captureScreen('mixed-game-results', `ChallengeScore-${score}.png`)}
+                        className="btn-secondary py-4 bg-math-blue text-math-purple-dark font-bold flex items-center justify-center gap-2 hover:bg-math-blue/60 transition-colors"
+                    >
+                        <Camera size={20} /> Capture My Score!
+                    </motion.button>
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={startGame}
+                        className="btn-primary bg-math-purple-dark text-white py-4 flex items-center justify-center gap-2"
+                    >
                         <RotateCcw /> Play Again
-                    </button>
-                    <button onClick={onBack} className="btn-secondary py-4 text-soft-text font-bold">
+                    </motion.button>
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onBack}
+                        className="btn-secondary py-4 text-soft-text font-bold"
+                    >
                         Back to Dashboard
-                    </button>
+                    </motion.button>
                 </div>
             </motion.div>
         )
@@ -78,26 +108,29 @@ const MixedGame = ({ onBack }) => {
             className="max-w-4xl mx-auto"
         >
             <div className="flex justify-between items-center mb-8 bg-white/50 p-4 rounded-2xl">
-                <button
+                <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={onBack}
                     className="flex items-center text-soft-text hover:text-math-purple-dark font-bold transition-colors"
                 >
                     <ArrowLeft className="mr-2" /> Back
-                </button>
+                </motion.button>
 
                 <div className="flex bg-white/50 rounded-2xl p-1 gap-1">
-                    <button
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => setGameState('learn')}
                         className={`px-4 py-2 rounded-xl flex items-center gap-2 font-bold transition-all ${gameState === 'learn' ? 'bg-math-purple text-white shadow-md' : 'text-soft-text opacity-50'}`}
                     >
                         <BookOpen size={20} /> Learn
-                    </button>
-                    <button
+                    </motion.button>
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => setGameState('setup')}
                         className={`px-4 py-2 rounded-xl flex items-center gap-2 font-bold transition-all ${gameState === 'play' || gameState === 'setup' ? 'bg-math-purple text-white shadow-md' : 'text-soft-text opacity-50'}`}
                     >
                         <PlayCircle size={20} /> Play
-                    </button>
+                    </motion.button>
                 </div>
             </div>
 
@@ -133,12 +166,13 @@ const MixedGame = ({ onBack }) => {
                             </div>
                         </div>
 
-                        <button
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => setGameState('setup')}
                             className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2"
                         >
                             I'm Ready to Play! <ArrowRight />
-                        </button>
+                        </motion.button>
                     </motion.div>
                 ) : gameState === 'setup' ? (
                     <motion.div
@@ -154,13 +188,14 @@ const MixedGame = ({ onBack }) => {
                             <p className="text-lg font-bold mb-4 text-soft-text">Choose Difficulty:</p>
                             <div className="flex gap-4 justify-center">
                                 {['easy', 'medium', 'hard'].map(d => (
-                                    <button
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
                                         key={d}
                                         onClick={() => setDifficulty(d)}
                                         className={`px-6 py-2 rounded-2xl font-bold capitalize transition-all ${difficulty === d ? 'bg-math-purple-dark text-white shadow-md' : 'bg-math-purple text-math-purple-dark'}`}
                                     >
                                         {d}
-                                    </button>
+                                    </motion.button>
                                 ))}
                             </div>
                         </div>
@@ -173,13 +208,14 @@ const MixedGame = ({ onBack }) => {
                                     { id: 'mcq', label: 'MCQs' },
                                     { id: 'mix', label: 'Mix' }
                                 ].map(t => (
-                                    <button
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
                                         key={t.id}
                                         onClick={() => setAnswerType(t.id)}
                                         className={`px-6 py-2 rounded-2xl font-bold transition-all ${answerType === t.id ? 'bg-math-purple-dark text-white shadow-md' : 'bg-math-purple text-math-purple-dark'}`}
                                     >
                                         {t.label}
-                                    </button>
+                                    </motion.button>
                                 ))}
                             </div>
                         </div>
@@ -198,9 +234,13 @@ const MixedGame = ({ onBack }) => {
                             </div>
                         </div>
 
-                        <button onClick={startGame} className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2">
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={startGame}
+                            className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2"
+                        >
                             Start Challenge! <PlayCircle />
-                        </button>
+                        </motion.button>
                     </motion.div>
                 ) : (
                     <motion.div
@@ -226,6 +266,8 @@ const MixedGame = ({ onBack }) => {
                                 difficulty={difficulty}
                                 onFinish={handleQuestionFinish}
                                 isMixedMode={true}
+                                quietMode={quietMode}
+                                onReward={onReward}
                             />
                         ) : (
                             <MathGame
@@ -236,6 +278,8 @@ const MixedGame = ({ onBack }) => {
                                 difficulty={difficulty}
                                 onFinish={handleQuestionFinish}
                                 isMixedMode={true}
+                                quietMode={quietMode}
+                                onReward={onReward}
                             />
                         )}
                     </motion.div>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, CheckCircle2, AlertCircle, BookOpen, PlayCircle, ArrowRight, Lightbulb, Trophy, RotateCcw } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, BookOpen, PlayCircle, ArrowRight, Lightbulb, Trophy, RotateCcw, Camera, Volume2 } from 'lucide-react'
 import confetti from 'canvas-confetti'
+import { captureScreen } from './ScreenCapture'
 
-const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficulty = 'easy', onFinish, isMixedMode = false, initialAnswerType = 'mix' }) => {
+const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficulty = 'easy', onFinish, isMixedMode = false, initialAnswerType = 'mix', quietMode = false, onReward }) => {
     const [mode, setMode] = useState(initialMode) // setup, learn, play, results
+    const [currentStep, setCurrentStep] = useState(0)
     const [difficulty, setDifficulty] = useState(propDifficulty)
     const [question, setQuestion] = useState({ type: 'area', shape: 'square', dim1: 0, dim2: 0, dim3: 0, answer: 0 })
     const [userInput, setUserInput] = useState('')
@@ -16,6 +18,7 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
     const [feedback, setFeedback] = useState('')
     const [answerType, setAnswerType] = useState(initialAnswerType) // fill, mcq, mix
     const [options, setOptions] = useState([])
+    const [activeLearnTopic, setActiveLearnTopic] = useState(null)
     const [currentQuestionType, setCurrentQuestionType] = useState('fill')
 
     // Learning content
@@ -23,118 +26,273 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
         area: {
             title: "Learning Area",
             steps: [
-                "Area is the space inside a shape! 🟦",
-                "To find the area of a square or rectangle, we multiply the sides.",
-                "Think of it like counting tiles on a floor! Side × Side."
-            ],
-            visual: (
-                <div className="flex justify-center items-center gap-6 mt-4">
-                    <div className="grid grid-cols-2 grid-rows-2 w-24 h-24 border-4 border-math-purple shadow-lg">
-                        <div className="border-2 border-math-purple/40 bg-math-purple/20"></div>
-                        <div className="border-2 border-math-purple/40 bg-math-purple/20"></div>
-                        <div className="border-2 border-math-purple/40 bg-math-purple/20"></div>
-                        <div className="border-2 border-math-purple/40 bg-math-purple/20"></div>
-                    </div>
-                    <div className="text-xl font-black text-math-purple-dark">2 × 2 = 4 blocks!</div>
-                </div>
-            )
+                {
+                    text: "Area is the space inside a shape!",
+                    visual: () => (
+                        <div className="w-32 h-20 bg-math-purple/30 border-4 border-math-purple rounded-lg shadow-sm"></div>
+                    )
+                },
+                {
+                    text: "Imagine filling it with small tiles.",
+                    visual: () => (
+                        <div className="grid grid-cols-4 grid-rows-2 w-48 h-24 border-2 border-math-purple/20">
+                            {Array(8).fill(0).map((_, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="border border-math-purple/40 bg-math-purple/30"
+                                ></motion.div>
+                            ))}
+                        </div>
+                    )
+                },
+                {
+                    text: "Multiply the sides! 4 across × 2 down = 8 tiles.",
+                    visual: () => (
+                        <div className="flex flex-col items-center">
+                            <div className="text-4xl font-black text-math-purple-dark">4 × 2 = 8</div>
+                            <p className="mt-2 font-bold opacity-60">Side × Side = Area!</p>
+                        </div>
+                    )
+                }
+            ]
         },
         volume: {
             title: "Learning Volume",
             steps: [
-                "Volume is the space inside a 3D box! 📦",
-                "To find volume, we multiply: Length × Width × Height.",
-                "It's like filling a box with little cubes!"
-            ],
-            visual: (
-                <div className="flex justify-center items-center gap-6 mt-4">
-                    <div className="relative w-20 h-20 bg-pink-200 border-4 border-pink-500 rounded-lg rotate-12 shadow-xl">
-                        <div className="absolute -top-3 -right-3 w-20 h-20 bg-pink-300 border-4 border-pink-500 rounded-lg -z-10 opacity-80"></div>
-                    </div>
-                    <div className="text-xl font-black text-pink-600">Fill it up! 🧊🧊🧊</div>
-                </div>
-            )
+                {
+                    text: "Volume is the space inside a 3D box! Let's build the base.",
+                    visual: () => (
+                        <div className="flex gap-1">
+                            {Array(4).fill(0).map((_, i) => <div key={i} className="w-8 h-8 bg-pink-300 border-2 border-pink-500 rounded shadow-sm"></div>)}
+                        </div>
+                    )
+                },
+                {
+                    text: "Now stack layers on top! 3 layers high.",
+                    visual: () => (
+                        <div className="flex flex-col-reverse items-center">
+                            {[1, 2, 3].map((layer) => (
+                                <motion.div
+                                    key={layer}
+                                    initial={{ opacity: 0, y: -20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: layer * 0.3 }}
+                                    className="flex gap-1 mt-[-4px]"
+                                >
+                                    {Array(4).fill(0).map((_, j) => (
+                                        <div key={j} className="w-8 h-8 bg-pink-400 border-2 border-pink-600 rounded shadow-md"></div>
+                                    ))}
+                                </motion.div>
+                            ))}
+                        </div>
+                    )
+                },
+                {
+                    text: "L × W × H = Total Space!",
+                    visual: () => (
+                        <div className="text-center">
+                            <div className="text-4xl font-black text-pink-600">4 × 1 × 3 = 12</div>
+                            <p className="mt-2 font-bold opacity-60 italic">Cubes fill the box!</p>
+                        </div>
+                    )
+                }
+            ]
         },
         triangle: {
             title: "Learning Triangles",
             steps: [
-                "A triangle is half of a rectangle! 📐",
-                "To find the area, we multiply Base × Height and then divide by 2.",
-                "Imagine cutting a sandwich diagonally! 🥪"
-            ],
-            visual: (
-                <div className="flex justify-center items-center gap-6 mt-4">
-                    <div className="w-0 h-0 border-l-[50px] border-l-transparent border-r-[50px] border-r-transparent border-b-[100px] border-b-math-purple/60 relative filter drop-shadow-lg">
-                        <div className="absolute top-14 -left-1 text-[12px] text-math-purple-dark font-black text-center leading-none bg-white/80 px-2 py-1 rounded-full border-2 border-math-purple/40">
-                            (Base × Height) / 2
+                {
+                    text: "A triangle is half of a rectangle!",
+                    visual: () => (
+                        <div className="relative w-32 h-20 border-2 border-dashed border-math-purple">
+                            <motion.div
+                                initial={{ clipPath: 'polygon(0 100%, 100% 100%, 100% 100%)' }}
+                                animate={{ clipPath: 'polygon(0 100%, 100% 100%, 0 0%)' }}
+                                transition={{ duration: 1, repeat: Infinity, repeatDelay: 1 }}
+                                className="absolute inset-0 bg-math-purple/40"
+                            ></motion.div>
                         </div>
-                    </div>
-                </div>
-            )
+                    )
+                },
+                {
+                    text: "(Base × Height) divided by 2.",
+                    visual: () => (
+                        <div className="text-3xl font-black text-math-purple-dark text-center">
+                            (4 × 5) / 2 = 10
+                        </div>
+                    )
+                }
+            ]
         },
         circle: {
             title: "Learning Circles",
             steps: [
-                "A circle's area depends on its Radius (the distance to the middle). ⭕",
-                "For easy math, we use: Area = 3 × Radius × Radius.",
-                "It's like finding how much paint covers a round plate!"
-            ],
-            visual: (
-                <div className="flex justify-center items-center gap-6 mt-4">
-                    <div className="w-24 h-24 rounded-full border-4 border-math-purple bg-math-purple/30 flex items-center justify-center relative shadow-lg">
-                        <div className="w-12 h-1 bg-math-purple-dark absolute left-1/2 origin-left shadow-sm"></div>
-                        <div className="absolute top-1/2 left-[70%] text-sm font-black text-math-purple-dark bg-white/80 px-1 rounded-sm">r</div>
-                    </div>
-                </div>
-            )
+                {
+                    text: "A circle's area depends on its Radius (the distance to the middle). ⭕",
+                    visual: () => (
+                        <div className="w-24 h-24 rounded-full border-4 border-math-purple bg-math-purple/30 flex items-center justify-center relative shadow-lg">
+                            <div className="w-12 h-1 bg-math-purple-dark absolute left-1/2 origin-left shadow-sm"></div>
+                            <div className="absolute top-1/2 left-[70%] text-sm font-black text-math-purple-dark bg-white/80 px-1 rounded-sm">r</div>
+                        </div>
+                    )
+                },
+                {
+                    text: "For easy math, we use: Area = 3 × Radius × Radius.",
+                    visual: () => (
+                        <div className="text-3xl font-black text-math-purple-dark text-center">
+                            3 × r × r
+                        </div>
+                    )
+                },
+                {
+                    text: "It's like finding how much paint covers a round plate!",
+                    visual: () => (
+                        <div className="w-24 h-24 rounded-full border-4 border-math-purple bg-math-purple/30 flex items-center justify-center relative shadow-lg">
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
+                                className="absolute inset-0 rounded-full bg-math-purple/50 opacity-50"
+                            ></motion.div>
+                        </div>
+                    )
+                }
+            ]
         },
         cylinder: {
             title: "Learning Cylinders",
             steps: [
-                "A cylinder is like a soup can! 🥫",
-                "Volume = 3 × Radius × Radius × Height.",
-                "It's like stacking circles on top of each other."
-            ],
-            visual: (
-                <div className="flex justify-center items-center gap-6 mt-4">
-                    <div className="w-20 h-28 border-x-4 border-math-purple bg-math-purple/30 rounded-[24px/12px] relative shadow-lg">
-                        <div className="w-20 h-6 border-4 border-math-purple rounded-full absolute -top-3 bg-math-purple/20"></div>
-                        <div className="w-20 h-6 border-4 border-math-purple rounded-full absolute -bottom-3 bg-math-purple/20 shadow-inner"></div>
-                    </div>
-                </div>
-            )
+                {
+                    text: "A cylinder is like a soup can! 🥫",
+                    visual: () => (
+                        <div className="flex justify-center items-center gap-6 mt-4">
+                            <div className="w-20 h-28 border-x-4 border-math-purple bg-math-purple/30 rounded-[24px/12px] relative shadow-lg">
+                                <div className="w-20 h-6 border-4 border-math-purple rounded-full absolute -top-3 bg-math-purple/20"></div>
+                                <div className="w-20 h-6 border-4 border-math-purple rounded-full absolute -bottom-3 bg-math-purple/20 shadow-inner"></div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    text: "Volume = 3 × Radius × Radius × Height.",
+                    visual: () => (
+                        <div className="flex justify-center items-center gap-6 mt-4 opacity-70">
+                            <div className="w-20 h-28 border-x-4 border-math-purple bg-math-purple/30 rounded-[24px/12px] relative">
+                                <div className="w-20 h-6 border-4 border-math-purple rounded-full absolute -top-3 bg-math-purple/20"></div>
+                                <div className="w-20 h-6 border-4 border-math-purple rounded-full absolute -bottom-3 bg-math-purple/20 shadow-inner"></div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    text: "It's like stacking circles on top of each other.",
+                    visual: () => (
+                        <div className="flex flex-col-reverse items-center justify-center h-28">
+                            {[1, 2, 3, 4].map(i => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: -20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.2 }}
+                                    className="w-20 h-4 border-2 border-math-purple rounded-full bg-math-purple/20 mt-[-2px] shadow-sm"
+                                ></motion.div>
+                            ))}
+                        </div>
+                    )
+                }
+            ]
         },
         sphere: {
             title: "Learning Spheres",
             steps: [
-                "A sphere is a perfectly round ball! ⚽",
-                "Volume = 4 × Radius × Radius × Radius.",
-                "Think of how much air fills a basketball!"
-            ],
-            visual: (
-                <div className="flex justify-center items-center gap-6 mt-4">
-                    <div className="w-24 h-24 rounded-full border-4 border-math-purple bg-math-purple/40 flex items-center justify-center relative shadow-xl overflow-hidden shadow-[inset_-15px_-15px_30px_rgba(0,0,0,0.2)]">
-                        <div className="w-24 h-10 border-2 border-math-purple/40 rounded-full absolute top-1/2 -translate-y-1/2"></div>
-                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/30"></div>
-                    </div>
-                </div>
-            )
+                {
+                    text: "A sphere is a perfectly round ball! ⚽",
+                    visual: () => (
+                        <div className="flex justify-center items-center gap-6 mt-4">
+                            <div className="w-24 h-24 rounded-full border-4 border-math-purple bg-math-purple/40 flex items-center justify-center relative shadow-xl overflow-hidden shadow-[inset_-15px_-15px_30px_rgba(0,0,0,0.2)]">
+                                <div className="w-24 h-10 border-2 border-math-purple/40 rounded-full absolute top-1/2 -translate-y-1/2"></div>
+                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/30"></div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    text: "Volume = 4 × Radius × Radius × Radius.",
+                    visual: () => (
+                        <div className="text-center font-black text-2xl text-math-purple-dark">
+                            4 × r × r × r
+                        </div>
+                    )
+                },
+                {
+                    text: "Think of how much air fills a basketball!",
+                    visual: () => (
+                        <motion.div
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="w-20 h-20 rounded-full bg-orange-500 border-4 border-orange-700 shadow-lg flex items-center justify-center"
+                        >
+                            <div className="text-white font-black text-xs">SPHERE</div>
+                        </motion.div>
+                    )
+                }
+            ]
         },
         cone: {
             title: "Learning Cones",
             steps: [
-                "A cone is like an ice cream cone! 🍦",
-                "Volume = Radius × Radius × Height.",
-                "It's exactly 1/3 of a cylinder's volume!"
-            ],
-            visual: (
-                <div className="flex justify-center items-center gap-6 mt-4">
-                    <div className="w-0 h-0 border-l-[40px] border-l-transparent border-r-[40px] border-r-transparent border-t-[90px] border-t-math-purple/50 relative filter drop-shadow-lg">
-                        <div className="w-[80px] h-6 border-4 border-math-purple rounded-full absolute -top-[102px] -left-[40px] bg-math-purple/20"></div>
-                    </div>
-                </div>
-            )
+                {
+                    text: "A cone is like an ice cream cone! 🍦",
+                    visual: () => (
+                        <div className="flex justify-center items-center gap-6 mt-4">
+                            <div className="w-0 h-0 border-l-[40px] border-l-transparent border-r-[40px] border-r-transparent border-t-[90px] border-t-math-purple/50 relative filter drop-shadow-lg">
+                                <div className="w-[80px] h-6 border-4 border-math-purple rounded-full absolute -top-[102px] -left-[40px] bg-math-purple/20"></div>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    text: "Volume = Radius × Radius × Height.",
+                    visual: () => (
+                        <div className="text-center font-black text-2xl text-math-purple-dark">
+                            r × r × h
+                        </div>
+                    )
+                },
+                {
+                    text: "It's exactly 1/3 of a cylinder's volume!",
+                    visual: () => (
+                        <div className="flex items-end gap-2">
+                            <div className="w-12 h-20 border-x-2 border-math-purple bg-math-purple/10 rounded-[12px/6px] relative">
+                                <div className="w-8 h-16 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[50px] border-t-math-purple/50 absolute bottom-0 left-1/2 -translate-x-1/2"></div>
+                            </div>
+                            <div className="text-sm font-bold opacity-50">1/3 fill</div>
+                        </div>
+                    )
+                }
+            ]
         }
+    }
+
+    const speakQuestion = () => {
+        if (quietMode) return
+        const speech = new SpeechSynthesisUtterance();
+        let text = `What is the ${question.type} of this ${question.shape}?`
+        speech.text = text;
+        speech.rate = 0.8;
+        window.speechSynthesis.speak(speech);
+    }
+
+    const getScoreFeedback = (score, total) => {
+        const p = (score / total) * 100
+        if (p === 100) return { title: "Shape Master! 🏆", msg: "You have a perfect eye for geometry!" }
+        if (p >= 80) return { title: "Excellent Work! 📏", msg: "You're measuring like a pro!" }
+        if (p >= 60) return { title: "Good Job! 📐", msg: "Your geometry skills are getting sharp!" }
+        if (p >= 40) return { title: "Keep it up! ✨", msg: "Practice makes perfect geometry!" }
+        return { title: "Don't Give Up! 🌈", msg: "Geometry can be tricky, but you're learning!" }
     }
 
     const handleNext = () => {
@@ -229,6 +387,36 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
         generateQuestion()
     }, [])
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (mode !== 'play') return
+
+            if (status === 'idle') {
+                if (currentQuestionType === 'mcq') {
+                    const key = parseInt(e.key)
+                    if (key >= 1 && key <= options.length) {
+                        setUserInput(options[key - 1].toString())
+                    }
+                }
+                if (e.key === 'Enter') {
+                    const form = document.querySelector('form')
+                    if (form) form.requestSubmit()
+                }
+            } else if (status === 'showing-result') {
+                if (e.key === 'Enter') {
+                    if (isMixedMode) {
+                        onFinish(false)
+                    } else {
+                        handleNext()
+                    }
+                }
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [mode, status, options, currentQuestionType, isMixedMode])
+
     const handleSubmit = (e) => {
         e.preventDefault()
         if (status !== 'idle' || userInput.trim() === '') return
@@ -236,12 +424,16 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
         if (parseInt(userInput) === question.answer) {
             setStatus('correct')
             setScore(s => s + 1)
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 }
-            })
+            if (!quietMode) {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#F0F7FF', '#F2FAF3', '#FFFDF0', '#F9F5FA']
+                })
+            }
 
+            if (onReward) onReward(2) // Geometry gives more stars
             if (isMixedMode) {
                 setTimeout(() => onFinish(true), 1500)
             } else {
@@ -285,9 +477,9 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={quietMode ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="max-w-3xl mx-auto"
+            className="max-w-3xl mx-auto px-4"
         >
             <div className="flex justify-between items-center mb-8">
                 <button onClick={onBack} className="flex items-center text-soft-text hover:text-math-purple font-bold">
@@ -314,12 +506,12 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
                 {mode === 'setup' ? (
                     <motion.div
                         key="setup-geo"
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={quietMode ? { opacity: 0 } : { opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="card p-8 text-center border-b-8 border-math-purple"
+                        exit={quietMode ? { opacity: 0 } : { opacity: 0, y: -10 }}
+                        className="card p-10 text-center border-b-8 border-math-purple/30"
                     >
-                        <h2 className="text-3xl font-black mb-8 text-soft-text">Shapes Setup</h2>
+                        <h2 className="text-3xl font-black mb-10 text-soft-text">Shapes Settings</h2>
 
                         <div className="mb-8">
                             <p className="text-lg font-bold mb-4 text-soft-text">Answer Type:</p>
@@ -375,82 +567,121 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
                     </motion.div>
                 ) : mode === 'learn' ? (
                     <motion.div
-                        key="learn-geo"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        className="card py-10 px-8 border-b-8 border-math-green-dark"
+                        key="learn"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="card p-8 flex flex-col items-center"
                     >
-                        <h2 className="text-4xl font-black mb-8 text-center text-soft-text">Shapes & Space</h2>
+                        {!activeLearnTopic ? (
+                            <>
+                                <div className="flex items-center gap-4 mb-8 w-full border-b border-math-blue pb-4">
+                                    <div className="p-3 bg-pink-100 rounded-2xl text-pink-500">
+                                        <BookOpen size={32} />
+                                    </div>
+                                    <div className="text-left">
+                                        <h2 className="text-3xl font-black text-soft-text leading-tight">Geometry Explorer</h2>
+                                        <p className="text-lg font-bold text-soft-text opacity-50">Exploration Mode</p>
+                                    </div>
+                                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                            <div className="p-6 bg-math-blue/30 rounded-3xl border-2 border-math-blue/50">
-                                <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 rounded-full bg-pink-400 text-white flex items-center justify-center text-sm">1</span>
-                                    Area
-                                </h3>
-                                <p className="mb-4">Area is the space inside a flat shape!</p>
-                                {learnData.area.visual}
-                            </div>
-                            <div className="p-6 bg-math-blue/30 rounded-3xl border-2 border-math-blue/50">
-                                <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 rounded-full bg-pink-400 text-white flex items-center justify-center text-sm">2</span>
-                                    Volume
-                                </h3>
-                                <p className="mb-4">Volume is the space inside a 3D box!</p>
-                                {learnData.volume.visual}
-                            </div>
-                            <div className="p-6 bg-math-blue/30 rounded-3xl border-2 border-math-blue/50">
-                                <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 rounded-full bg-pink-400 text-white flex items-center justify-center text-sm">3</span>
-                                    Triangles
-                                </h3>
-                                <p className="mb-4">A triangle is half of a rectangle!</p>
-                                {learnData.triangle.visual}
-                            </div>
-                            <div className="p-6 bg-math-blue/30 rounded-3xl border-2 border-math-blue/50">
-                                <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 rounded-full bg-pink-400 text-white flex items-center justify-center text-sm">4</span>
-                                    Circles
-                                </h3>
-                                <p className="mb-4">Circles are round! Area = 3 × r × r.</p>
-                                {learnData.circle.visual}
-                            </div>
-                            <div className="p-6 bg-math-blue/30 rounded-3xl border-2 border-math-blue/50">
-                                <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 rounded-full bg-pink-400 text-white flex items-center justify-center text-sm">5</span>
-                                    Cylinders
-                                </h3>
-                                <p className="mb-4">Volume = 3 × r × r × h.</p>
-                                {learnData.cylinder.visual}
-                            </div>
-                            <div className="p-6 bg-math-blue/30 rounded-3xl border-2 border-math-blue/50">
-                                <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 rounded-full bg-pink-400 text-white flex items-center justify-center text-sm">6</span>
-                                    Spheres
-                                </h3>
-                                <p className="mb-4">Volume = 4 × r × r × r.</p>
-                                {learnData.sphere.visual}
-                            </div>
-                            <div className="p-6 bg-math-blue/30 rounded-3xl border-2 border-math-blue/50">
-                                <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 rounded-full bg-pink-400 text-white flex items-center justify-center text-sm">7</span>
-                                    Cones
-                                </h3>
-                                <p className="mb-4">Volume = r × r × h.</p>
-                                {learnData.cone.visual}
-                            </div>
-                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10 w-full">
+                                    {Object.entries(learnData).map(([key, data]) => (
+                                        <motion.div
+                                            key={key}
+                                            whileHover={{ y: -5 }}
+                                            onClick={() => {
+                                                setActiveLearnTopic(key);
+                                                setCurrentStep(0);
+                                            }}
+                                            className="p-6 bg-math-blue/30 rounded-[2rem] border-2 border-math-blue/50 cursor-pointer relative overflow-hidden group"
+                                        >
+                                            <h3 className="text-2xl font-black mb-4 text-soft-text">{data.title}</h3>
+                                            <div className="min-h-[150px] flex items-center justify-center pointer-events-none">
+                                                {data.steps[0].visual()}
+                                            </div>
+                                            <div className="absolute inset-0 bg-white/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-[2rem]">
+                                                <div className="p-4 bg-math-purple-dark text-white rounded-full font-black flex items-center gap-2">
+                                                    Learn More <ArrowRight size={20} />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
 
-                        <button
-                            onClick={() => setMode('setup')}
-                            className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2 mt-4"
-                        >
-                            I'm Ready to Play! <ArrowRight />
-                        </button>
+                                <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setMode('setup')}
+                                    className="btn-primary bg-math-purple-dark text-white w-full py-5 text-xl flex items-center justify-center gap-2 mt-4"
+                                >
+                                    I'm Ready to Play! <ArrowRight />
+                                </motion.button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-4 mb-8 w-full border-b border-math-blue pb-4">
+                                    <button
+                                        onClick={() => setActiveLearnTopic(null)}
+                                        className="p-3 bg-math-blue rounded-2xl text-math-purple-dark hover:bg-math-purple/20 transition-colors"
+                                    >
+                                        <ArrowLeft size={24} />
+                                    </button>
+                                    <div className="text-left">
+                                        <h2 className="text-3xl font-black text-soft-text leading-tight">{learnData[activeLearnTopic].title}</h2>
+                                        <p className="text-lg font-bold text-soft-text opacity-50">Step {currentStep + 1} of {learnData[activeLearnTopic].steps.length}</p>
+                                    </div>
+                                </div>
+
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={currentStep}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="w-full flex flex-col items-center"
+                                    >
+                                        <div className="text-2xl font-black text-math-purple-dark mb-10 text-center max-w-lg leading-relaxed bg-math-purple/30 p-6 rounded-[2rem]">
+                                            {learnData[activeLearnTopic].steps[currentStep].text}
+                                        </div>
+
+                                        <div className="min-h-[250px] flex items-center justify-center w-full mb-10">
+                                            {learnData[activeLearnTopic].steps[currentStep].visual()}
+                                        </div>
+                                    </motion.div>
+                                </AnimatePresence>
+
+                                <div className="flex flex-col sm:flex-row gap-4 w-full">
+                                    {currentStep > 0 && (
+                                        <button
+                                            onClick={() => setCurrentStep(prev => prev - 1)}
+                                            className="btn-secondary py-4 bg-white border-4 border-math-blue text-soft-text flex-1"
+                                        >
+                                            Go Back
+                                        </button>
+                                    )}
+                                    {currentStep < learnData[activeLearnTopic].steps.length - 1 ? (
+                                        <motion.button
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => setCurrentStep(prev => prev + 1)}
+                                            className="btn-primary bg-math-purple-dark text-white flex-1 py-4 flex items-center justify-center gap-2"
+                                        >
+                                            Next Step <ArrowRight />
+                                        </motion.button>
+                                    ) : (
+                                        <motion.button
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => { setActiveLearnTopic(null); setMode('setup'); }}
+                                            className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2"
+                                        >
+                                            I'm Ready to Play! <ArrowRight />
+                                        </motion.button>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </motion.div>
                 ) : mode === 'results' ? (
                     <motion.div
+                        id="geometry-game-results"
                         key="results-geo"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -458,8 +689,8 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
                         className="card p-10 text-center border-b-8 border-math-green-dark"
                     >
                         <Trophy size={80} className="mx-auto text-math-yellow-dark mb-6" />
-                        <h2 className="text-4xl font-black mb-2 text-soft-text">Shapes Pro!</h2>
-                        <p className="text-xl text-soft-text/80 mb-8">Great measuring on the {difficulty} level</p>
+                        <h2 className="text-4xl font-black mb-2 text-soft-text">{getScoreFeedback(score, totalQuestions).title}</h2>
+                        <p className="text-xl text-soft-text/80 mb-8">{getScoreFeedback(score, totalQuestions).msg}</p>
 
                         <div className="bg-math-blue/30 rounded-3xl p-8 mb-8">
                             <div className="text-6xl font-black text-math-purple-dark mb-2">{score} / {totalQuestions}</div>
@@ -467,6 +698,12 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
                         </div>
 
                         <div className="flex flex-col gap-4">
+                            <button
+                                onClick={() => captureScreen('geometry-game-results', `GeoScore-${score}.png`)}
+                                className="btn-secondary py-4 bg-math-blue text-math-purple-dark font-bold flex items-center justify-center gap-2 hover:bg-math-blue/60 transition-colors"
+                            >
+                                <Camera size={20} /> Capture My Score!
+                            </button>
                             <button onClick={() => setMode('setup')} className="btn-primary bg-math-purple-dark text-white py-4 flex items-center justify-center gap-2">
                                 <RotateCcw /> Play Again
                             </button>
@@ -485,8 +722,15 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
                     >
                         <div className="flex justify-between items-center mb-6 px-4">
                             <div className="text-xs font-bold text-math-purple-dark uppercase tracking-widest">
-                                Question {currentQuestionIndex + 1} of {totalQuestions}
+                                Project {currentQuestionIndex + 1} / {totalQuestions}
                             </div>
+                            <button
+                                onClick={speakQuestion}
+                                className="p-2 rounded-full bg-math-blue text-math-purple-dark hover:bg-math-purple/20 transition-colors"
+                                title="Read Question"
+                            >
+                                <Volume2 size={24} />
+                            </button>
                             <div className="text-xs font-bold text-math-purple-dark uppercase tracking-widest">
                                 Score: {score}
                             </div>
@@ -599,7 +843,8 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
                                     placeholder="..."
                                 />
                             )}
-                            <button
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
                                 disabled={status === 'correct' || status === 'wrong'}
                                 type={status === 'showing-result' ? 'button' : 'submit'}
                                 onClick={status === 'showing-result' ? (isMixedMode ? () => onFinish(false) : handleNext) : undefined}
@@ -611,7 +856,7 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
                                 {status === 'correct' ? <CheckCircle2 className="mx-auto" /> :
                                     status === 'wrong' ? <AlertCircle className="mx-auto" /> :
                                         status === 'showing-result' ? (isMixedMode ? 'Next Question' : 'Try Another One!') : 'Check Answer'}
-                            </button>
+                            </motion.button>
                         </form>
 
                         <AnimatePresence>
@@ -639,6 +884,17 @@ const GeometryGame = ({ onBack, initialMode = 'learn', difficulty: propDifficult
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {mode === 'play' && (
+                <div className="mt-8 flex justify-center">
+                    <button
+                        onClick={() => setMode('learn')}
+                        className="text-soft-text/50 hover:text-math-purple-dark flex items-center gap-2 font-bold text-sm transition-colors"
+                    >
+                        <Lightbulb size={16} /> Need help? Look at the Shapes Guide
+                    </button>
+                </div>
+            )}
         </motion.div>
     )
 }

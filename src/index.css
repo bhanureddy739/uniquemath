@@ -1,35 +1,44 @@
 @import "tailwindcss";
 
 @theme {
-  --color-math-blue: #E3F2FD;
-  --color-math-green: #E8F5E9;
-  --color-math-yellow: #FFF9C4;
-  --color-math-purple: #F3E5F5;
-  --color-math-orange: #FFF3E0;
+  --color-math-blue: #F0F7FF;
+  --color-math-green: #F2FAF3;
+  --color-math-yellow: #FFFDF0;
+  --color-math-purple: #F9F5FA;
+  --color-math-orange: #FFF9F2;
   
-  --color-math-blue-dark: #1565C0;
-  --color-math-green-dark: #2E7D32;
-  --color-math-yellow-dark: #F9A825;
-  --color-math-purple-dark: #7B1FA2;
-  --color-math-orange-dark: #EF6C00;
+  --color-math-blue-dark: #2C5282;
+  --color-math-green-dark: #276749;
+  --color-math-yellow-dark: #B7791F;
+  --color-math-purple-dark: #553C9A;
+  --color-math-orange-dark: #9C4221;
   
-  --color-soft-text: #263238;
+  --color-soft-text: #2D3748;
   --font-nunito: "Nunito", sans-serif;
 }
 
 @layer base {
   body {
-    @apply font-nunito text-soft-text bg-math-blue min-h-screen overflow-x-hidden;
+    @apply font-nunito text-soft-text bg-math-blue min-h-screen overflow-x-hidden antialiased selection:bg-math-purple selection:text-math-purple-dark;
+    transition: background-color 0.5s ease;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg;
+    @apply px-8 py-4 rounded-[2rem] font-black text-xl transition-all duration-300 transform shadow-md active:shadow-inner;
+  }
+  
+  .btn-secondary {
+    @apply px-6 py-3 rounded-[1.5rem] font-bold text-lg transition-all duration-200;
   }
   
   .card {
-    @apply bg-white rounded-3xl p-4 sm:p-6 shadow-sm border-4 border-transparent hover:border-math-purple transition-all duration-300;
+    @apply bg-white rounded-[2.5rem] p-8 shadow-sm border-b-8 border-transparent transition-all duration-300;
+  }
+
+  .quiet-mode-bg {
+    background-color: #F8F9FA !important;
   }
 }
 
@@ -43,15 +52,31 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-math-purple/50 rounded-full hover:bg-math-purple/70;
+  @apply bg-math-purple-dark/10 rounded-full hover:bg-math-purple-dark/20;
 }
 
 /* Animations */
-.bounce-slow {
-  animation: bounce 3s infinite;
+.float-slow {
+  animation: float 5s ease-in-out infinite;
 }
 
-@keyframes bounce {
+@keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
+}
+
+/* Quiet Mode - Remove distracting elements */
+.quiet-mode .confetti-canvas,
+.quiet-mode .reward-popup {
+  display: none !important;
+}
+
+.quiet-mode * {
+  animation-duration: 0s !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Manipulatives */
+.manipulative {
+  @apply w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center text-4xl sm:text-5xl select-none cursor-pointer;
 }

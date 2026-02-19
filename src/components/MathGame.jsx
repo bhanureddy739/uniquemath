@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, CheckCircle2, AlertCircle, PlayCircle, BookOpen, ArrowRight, Lightbulb, Trophy, RotateCcw } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, PlayCircle, BookOpen, ArrowRight, Lightbulb, Trophy, RotateCcw, Camera, Volume2, Plus } from 'lucide-react'
 import confetti from 'canvas-confetti'
+import { captureScreen } from './ScreenCapture'
+import InteractiveElement from './InteractiveElement'
 
-const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficulty = 'easy', onFinish, isMixedMode = false, initialAnswerType = 'mix' }) => {
+const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficulty = 'easy', onFinish, isMixedMode = false, initialAnswerType = 'mix', quietMode = false, onReward }) => {
     const [mode, setMode] = useState(initialMode) // setup, learn, play, results
+    const [currentStep, setCurrentStep] = useState(0)
     const [difficulty, setDifficulty] = useState(propDifficulty)
     const [question, setQuestion] = useState({ a: 0, b: 0, op: '+', answer: 0 })
     const [userInput, setUserInput] = useState('')
@@ -19,102 +22,282 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
     const [currentQuestionType, setCurrentQuestionType] = useState('fill')
 
     // Learning data for each type
+    const getManipulative = (gameType) => {
+        const icons = {
+            add: '🍎',
+            sub: '⭐',
+            mul: '🧱',
+            div: '🍪',
+            power: '📦',
+            factorial: '🎈',
+            prime: '🟢'
+        }
+        return icons[gameType] || '🍎'
+    }
+
     const learnData = {
         add: {
             title: "Learning Addition",
             steps: [
-                "Addition means putting things together! 🍎 + 🍎 = 🍎🍎",
-                "When we see the '+' sign, we add the numbers.",
-                "Example: 2 + 3. You have 2 apples, and you get 3 more. Now you have 5!"
-            ],
-            visual: (
-                <div className="flex gap-4 justify-center items-center text-4xl mt-4">
-                    <div className="flex gap-1"><div className="w-8 h-8 bg-red-400 rounded-full"></div><div className="w-8 h-8 bg-red-400 rounded-full"></div></div>
-                    <div className="text-math-purple-dark text-5xl font-bold">+</div>
-                    <div className="flex gap-1"><div className="w-8 h-8 bg-red-400 rounded-full"></div><div className="w-8 h-8 bg-red-400 rounded-full"></div><div className="w-8 h-8 bg-red-400 rounded-full"></div></div>
-                    <div className="text-math-purple">=</div>
-                    <div className="flex gap-1"><div className="w-6 h-6 bg-red-400 rounded-full"></div><div className="w-6 h-6 bg-red-400 rounded-full"></div><div className="w-6 h-6 bg-red-400 rounded-full"></div><div className="w-6 h-6 bg-red-400 rounded-full"></div><div className="w-6 h-6 bg-red-400 rounded-full"></div></div>
-                </div>
-            )
+                {
+                    text: "Addition means putting things together!",
+                    visual: (a, b) => (
+                        <div className="flex gap-4 items-center justify-center">
+                            <div className="flex gap-1">{Array(a).fill(0).map((_, i) => <InteractiveElement key={i}><div className="manipulative">{getManipulative('add')}</div></InteractiveElement>)}</div>
+                            <Plus className="text-math-purple-dark" size={32} />
+                            <div className="flex gap-1">{Array(b).fill(0).map((_, i) => <InteractiveElement key={i}><div className="manipulative">{getManipulative('add')}</div></InteractiveElement>)}</div>
+                        </div>
+                    )
+                },
+                {
+                    text: `Let's merge them! ${question.a} + ${question.b}`,
+                    visual: (a, b) => (
+                        <div className="flex gap-1 items-center justify-center">
+                            {Array(a + b).fill(0).map((_, i) => (
+                                <motion.div key={i} layoutId={`item-${i}`} className="manipulative">{getManipulative('add')}</motion.div>
+                            ))}
+                        </div>
+                    )
+                },
+                {
+                    text: `Count them all. There are ${question.a + question.b}!`,
+                    visual: (a, b) => (
+                        <div className="flex flex-col items-center">
+                            <div className="flex gap-1 flex-wrap justify-center max-w-md">
+                                {Array(a + b).fill(0).map((_, i) => (
+                                    <InteractiveElement key={i} type="pop">
+                                        <div className="manipulative relative">
+                                            {getManipulative('add')}
+                                            <span className="absolute -top-2 -right-2 bg-white text-xs px-1 rounded-full border shadow-sm font-black">{i + 1}</span>
+                                        </div>
+                                    </InteractiveElement>
+                                ))}
+                            </div>
+                            <div className="mt-4 text-3xl font-black text-math-purple-dark">{a} + {b} = {a + b}</div>
+                        </div>
+                    )
+                }
+            ]
         },
         sub: {
             title: "Learning Subtraction",
             steps: [
-                "Subtraction means taking away! 🍎🍎 - 🍎 = 🍎",
-                "The '-' sign means we remove items from the group.",
-                "Example: 5 - 2. You have 5 stars, you lose 2. Now you have 3!"
-            ],
-            visual: (
-                <div className="flex gap-4 justify-center items-center text-4xl mt-4">
-                    <div className="flex gap-1">{"⭐⭐⭐⭐⭐".split("").map((s, i) => <span key={i} className="text-2xl">{s}</span>)}</div>
-                    <div className="text-math-purple-dark text-5xl font-bold">-</div>
-                    <div className="flex gap-1 text-2xl">⭐⭐</div>
-                    <div className="text-math-purple">=</div>
-                    <div className="flex gap-1 text-2xl">⭐⭐⭐</div>
-                </div>
-            )
+                {
+                    text: `Subtraction means taking away! We start with ${question.a}.`,
+                    visual: (a) => (
+                        <div className="flex gap-1 flex-wrap justify-center">
+                            {Array(a).fill(0).map((_, i) => <InteractiveElement key={i}><div className="manipulative">{getManipulative('sub')}</div></InteractiveElement>)}
+                        </div>
+                    )
+                },
+                {
+                    text: `Take away ${question.b} ${getManipulative('sub')}s.`,
+                    visual: (a, b) => (
+                        <div className="flex gap-1 flex-wrap justify-center">
+                            {Array(a).fill(0).map((_, i) => (
+                                <motion.div
+                                    key={i}
+                                    animate={i >= a - b ? { opacity: 0.2, scale: 0.8, rotate: 10 } : {}}
+                                    className="manipulative"
+                                >
+                                    {getManipulative('sub')}
+                                </motion.div>
+                            ))}
+                        </div>
+                    )
+                },
+                {
+                    text: `How many are left? ${question.a - question.b}!`,
+                    visual: (a, b) => (
+                        <div className="flex flex-col items-center">
+                            <div className="flex gap-1 flex-wrap justify-center">
+                                {Array(a - b).fill(0).map((_, i) => (
+                                    <InteractiveElement key={i} type="pop">
+                                        <div className="manipulative">{getManipulative('sub')}</div>
+                                    </InteractiveElement>
+                                ))}
+                            </div>
+                            <div className="mt-4 text-3xl font-black text-math-purple-dark">{a} - {b} = {a - b}</div>
+                        </div>
+                    )
+                }
+            ]
         },
         mul: {
             title: "Learning Multiplication",
             steps: [
-                "Multiplication is adding the same number many times!",
-                "2 × 3 means 2 groups of 3 apples. (3 + 3 = 6)",
-                "Example: 2 × 3 = 6. It's like skip counting!"
-            ],
-            visual: (
-                <div className="flex flex-col gap-2 items-center mt-4">
-                    <div className="flex gap-4">
-                        <div className="border-2 border-dashed border-math-purple p-2 rounded-xl flex gap-1">🍎🍎🍎</div>
-                        <div className="border-2 border-dashed border-math-purple p-2 rounded-xl flex gap-1">🍎🍎🍎</div>
-                    </div>
-                    <div className="text-sm opacity-70">2 groups of 3 = 6</div>
-                </div>
-            )
+                {
+                    text: "Multiplication is adding the same number many times!",
+                    visual: (a, b) => (
+                        <div className="flex flex-col items-center">
+                            <div className="flex gap-4">
+                                {Array(2).fill(0).map((_, i) => (
+                                    <div key={i} className={`p-4 rounded-3xl border-4 border-dashed bg-white shadow-sm flex flex-wrap gap-1 max-w-[150px] justify-center ${['border-math-green', 'border-math-blue'][i % 2]}`}>
+                                        {Array(3).fill(0).map((_, j) => <div key={j} className="text-3xl">{getManipulative('mul')}</div>)}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 text-xl font-bold opacity-60 text-center">We have 2 boxes with 3 items each.</div>
+                        </div>
+                    )
+                },
+                {
+                    text: "Let's count them all: 3 + 3 = 6",
+                    visual: () => (
+                        <div className="flex flex-col items-center">
+                            <div className="flex gap-2 text-3xl font-black text-math-purple-dark">3 + 3 = 6</div>
+                            <div className="flex gap-1 flex-wrap justify-center mt-6 max-w-lg">
+                                {Array(6).fill(0).map((_, i) => <InteractiveElement key={i} type="pop"><div className="text-3xl">{getManipulative('mul')}</div></InteractiveElement>)}
+                            </div>
+                        </div>
+                    )
+                }
+            ]
         },
         div: {
             title: "Learning Division",
             steps: [
-                "Division means sharing equally with friends!",
-                "6 ÷ 2 means sharing 6 cookies between 2 people.",
-                "Everyone gets 3 cookies! 🍪🍪🍪 | 🍪🍪🍪"
-            ],
-            visual: (
-                <div className="flex gap-8 justify-center items-center mt-4">
-                    <div className="flex flex-col items-center">
-                        <div className="text-2xl">👤</div>
-                        <div className="bg-math-blue p-2 rounded-lg mt-2">🍪🍪🍪</div>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <div className="text-2xl">👤</div>
-                        <div className="bg-math-blue p-2 rounded-lg mt-2">🍪🍪🍪</div>
-                    </div>
-                </div>
-            )
+                {
+                    text: "Division is equal sharing! Let's share 6 items.",
+                    visual: () => (
+                        <div className="flex gap-1 flex-wrap justify-center max-w-lg">
+                            {Array(6).fill(0).map((_, i) => <div key={i} className="text-3xl">{getManipulative('div')}</div>)}
+                        </div>
+                    )
+                },
+                {
+                    text: "Share them between 2 friends equally.",
+                    visual: () => (
+                        <div className="flex gap-8 justify-center items-end">
+                            {[1, 2].map((_, i) => (
+                                <div key={i} className="flex flex-col items-center gap-2">
+                                    <div className="text-5xl">👤</div>
+                                    <div className="bg-math-blue/50 p-4 rounded-2xl min-h-[80px] min-w-[100px] flex flex-wrap gap-1 justify-center border-2 border-math-blue">
+                                        {Array(3).fill(0).map((_, j) => <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: j * 0.1 }} key={j} className="text-2xl">{getManipulative('div')}</motion.div>)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                },
+                {
+                    text: "Everyone gets 3!",
+                    visual: () => (
+                        <div className="text-center">
+                            <div className="text-4xl font-black text-math-purple-dark">6 ÷ 2 = 3</div>
+                            <p className="mt-2 font-bold opacity-60">Sharing is caring! 💖</p>
+                        </div>
+                    )
+                }
+            ]
         },
         power: {
             title: "Learning Powers",
             steps: [
-                "Power means multiplying a number by itself!",
-                "2^3 means 2 × 2 × 2.",
-                "2 × 2 is 4, and 4 × 2 is 8. So 2^3 = 8!"
+                {
+                    text: "Powers are repeated multiplication!",
+                    visual: () => (
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="text-5xl font-black">2<sup>3</sup></div>
+                            <div className="text-2xl font-bold opacity-60">This means 2 × 2 × 2</div>
+                        </div>
+                    )
+                },
+                {
+                    text: "Think of it as growing layers! 2 → 4 → 8",
+                    visual: () => (
+                        <div className="flex flex-col items-center">
+                            {[2, 4, 8].map((val, i) => (
+                                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.3 }} className="flex gap-1 mt-1">
+                                    {Array(val).fill(0).map((_, j) => <div key={j} className="w-4 h-4 bg-math-orange rounded shadow-sm"></div>)}
+                                </motion.div>
+                            ))}
+                            <div className="mt-4 font-black text-2xl text-math-orange-dark">Total: 8</div>
+                        </div>
+                    )
+                }
             ]
         },
         factorial: {
             title: "Learning Factorials",
             steps: [
-                "Factorial (!) is multiplying down to 1!",
-                "3! means 3 × 2 × 1.",
-                "3 × 2 is 6, and 6 × 1 is 6. So 3! = 6!"
+                {
+                    text: "Factorial is a countdown multiplication!",
+                    visual: () => (
+                        <div className="flex flex-col items-center gap-6">
+                            <div className="text-5xl font-black">4!</div>
+                            <div className="flex items-end gap-2 text-2xl font-black text-math-purple-dark">
+                                4 × 3 × 2 × 1 = 24
+                            </div>
+                            <div className="flex items-end gap-2">
+                                {[4, 3, 2, 1].map((val, i) => (
+                                    <div key={i} className="flex flex-col items-center gap-1">
+                                        <div className="flex flex-col gap-1">
+                                            {Array(val).fill(0).map((_, j) => <div key={j} className="w-5 h-5 bg-red-400 rounded-full shadow-sm"></div>)}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )
+                }
             ]
         },
         prime: {
             title: "Prime vs Composite",
             steps: [
-                "A Prime number can only be divided by 1 and itself.",
-                "Example: 5 is Prime. You can't make equal groups except 1 group of 5.",
-                "Composite numbers can be broken into equal groups! Like 6 (2 groups of 3)."
+                {
+                    text: "Can we make equal groups with this number?",
+                    visual: () => (
+                        <div className="flex flex-col items-center">
+                            <div className="text-5xl font-black mb-6">6</div>
+                            <div className="flex gap-1 flex-wrap justify-center max-w-md">
+                                {Array(6).fill(0).map((_, i) => <div key={i} className="text-3xl text-blue-500">🟢</div>)}
+                            </div>
+                            <div className="mt-4 text-xl font-bold text-blue-600">6 is Composite (3 groups of 2)</div>
+                        </div>
+                    )
+                },
+                {
+                    text: "Some numbers can only be 1 row!",
+                    visual: () => (
+                        <div className="flex flex-col items-center">
+                            <div className="text-5xl font-black mb-6">7</div>
+                            <div className="flex gap-1">
+                                {Array(7).fill(0).map((_, i) => <div key={i} className="text-3xl text-green-500">🟢</div>)}
+                            </div>
+                            <div className="mt-4 text-xl font-bold text-green-600">7 is Prime (No equal groups!)</div>
+                        </div>
+                    )
+                }
             ]
         }
+    }
+
+    const speakQuestion = () => {
+        if (quietMode) return
+        const speech = new SpeechSynthesisUtterance();
+        let text = ""
+        if (type === 'factorial') {
+            text = `${question.a} factorial equals what?`
+        } else if (type === 'prime') {
+            text = `Is ${question.a} a ${question.op === 'prime?' ? 'prime number' : 'composite number'}?`
+        } else {
+            const opWords = { '+': 'plus', '-': 'minus', '×': 'times', '÷': 'divided by', '^': 'to the power of' }
+            text = `${question.a} ${opWords[question.op]} ${question.b} equals what?`
+        }
+        speech.text = text;
+        speech.rate = 0.8; // Calmer, slower speed
+        window.speechSynthesis.speak(speech);
+    }
+
+    const getScoreFeedback = (score, total) => {
+        const p = (score / total) * 100
+        if (p === 100) return { title: "Spectacular! 🌟", msg: "A perfect score! You're a math wizard!" }
+        if (p >= 80) return { title: "Amazing! 🚀", msg: "You're doing great! Keep it up!" }
+        if (p >= 60) return { title: "Great Job! 👍", msg: "You have a solid understanding!" }
+        if (p >= 40) return { title: "Good Effort! 💪", msg: "Keep practicing and you'll get even better!" }
+        return { title: "Keep Going! ✨", msg: "Every mistake is a chance to learn!" }
     }
 
     const handleNext = () => {
@@ -223,6 +406,37 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
         generateQuestion()
     }, [type])
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (mode !== 'play') return
+
+            if (status === 'idle') {
+                if (currentQuestionType === 'mcq') {
+                    const key = parseInt(e.key)
+                    if (key >= 1 && key <= options.length) {
+                        setUserInput(options[key - 1].toString())
+                    }
+                }
+                if (e.key === 'Enter') {
+                    // Trigger form submission
+                    const form = document.querySelector('form')
+                    if (form) form.requestSubmit()
+                }
+            } else if (status === 'showing-result') {
+                if (e.key === 'Enter') {
+                    if (isMixedMode) {
+                        onFinish(false)
+                    } else {
+                        handleNext()
+                    }
+                }
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [mode, status, options, currentQuestionType, isMixedMode])
+
     const handleSubmit = (e) => {
         e.preventDefault()
         if (status !== 'idle' || userInput.trim() === '') return
@@ -234,12 +448,14 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
         if (isCorrect) {
             setStatus('correct')
             setScore(s => s + 1)
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#E3F2FD', '#E8F5E9', '#FFF9C4', '#F3E5F5']
-            })
+            if (!quietMode) {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#F0F7FF', '#F2FAF3', '#FFFDF0', '#F9F5FA']
+                })
+            }
 
             if (isMixedMode) {
                 setTimeout(() => onFinish(true), 1500)
@@ -271,10 +487,10 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={quietMode ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="max-w-3xl mx-auto"
+            exit={quietMode ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+            className="max-w-3xl mx-auto px-4"
         >
             <div className="flex justify-between items-center mb-8">
                 <button
@@ -304,12 +520,12 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                 {mode === 'setup' ? (
                     <motion.div
                         key="setup"
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={quietMode ? { opacity: 0 } : { opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="card p-8 text-center border-b-8 border-math-purple"
+                        exit={quietMode ? { opacity: 0 } : { opacity: 0, y: -10 }}
+                        className="card p-10 text-center border-b-8 border-math-purple/30"
                     >
-                        <h2 className="text-3xl font-black mb-8 text-soft-text">Game Setup</h2>
+                        <h2 className="text-3xl font-black mb-10 text-soft-text">Game Settings</h2>
 
                         <div className="mb-8">
                             <p className="text-lg font-bold mb-4 text-soft-text">Choose Difficulty:</p>
@@ -359,54 +575,80 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                             </div>
                         </div>
 
-                        <button onClick={startPlay} className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2">
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={startPlay}
+                            className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2"
+                        >
                             Start Game! <PlayCircle />
-                        </button>
+                        </motion.button>
                     </motion.div>
                 ) : mode === 'learn' ? (
                     <motion.div
                         key="learn"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        className="card py-10 px-8 border-b-8 border-math-green"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="card p-8 flex flex-col items-center"
                     >
-                        <h2 className="text-4xl font-black mb-8 text-center text-soft-text">
-                            {learnData[type]?.title || "Let's Learn!"}
-                        </h2>
-
-                        <div className="space-y-6 mb-10">
-                            {learnData[type]?.steps.map((step, i) => (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.5 }}
-                                    key={i}
-                                    className="flex items-start gap-4 p-4 bg-math-blue/30 rounded-2xl border-2 border-math-blue/50"
-                                >
-                                    <div className="w-8 h-8 rounded-full bg-math-purple text-white flex items-center justify-center font-bold flex-shrink-0">
-                                        {i + 1}
-                                    </div>
-                                    <p className="text-lg font-medium">{step}</p>
-                                </motion.div>
-                            ))}
+                        <div className="flex items-center gap-4 mb-8 w-full border-b border-math-blue pb-4">
+                            <div className="p-3 bg-math-purple rounded-2xl text-math-purple-dark">
+                                <BookOpen size={32} />
+                            </div>
+                            <div className="text-left">
+                                <h2 className="text-3xl font-black text-soft-text leading-tight">{learnData[type]?.title}</h2>
+                                <p className="text-lg font-bold text-soft-text opacity-50">Step {currentStep + 1} of {learnData[type]?.steps.length}</p>
+                            </div>
                         </div>
 
-                        {learnData[type]?.visual && (
-                            <div className="mb-12 p-6 bg-white rounded-3xl shadow-inner border-2 border-dashed border-math-purple text-math-purple-dark font-black">
-                                {learnData[type].visual}
-                            </div>
-                        )}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentStep}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="w-full flex flex-col items-center"
+                            >
+                                <div className="text-2xl font-black text-math-purple-dark mb-10 text-center max-w-lg leading-relaxed bg-math-purple/30 p-6 rounded-[2rem]">
+                                    {learnData[type]?.steps[currentStep].text}
+                                </div>
 
-                        <button
-                            onClick={() => setMode('setup')}
-                            className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2"
-                        >
-                            I'm Ready to Play! <ArrowRight />
-                        </button>
+                                <div className="min-h-[250px] flex items-center justify-center w-full mb-10">
+                                    {learnData[type]?.steps[currentStep].visual(question.a, question.b)}
+                                </div>
+                            </motion.div>
+                        </AnimatePresence>
+
+                        <div className="flex flex-col sm:flex-row gap-4 w-full">
+                            {currentStep > 0 && (
+                                <button
+                                    onClick={() => setCurrentStep(prev => prev - 1)}
+                                    className="btn-secondary py-4 bg-white border-4 border-math-blue text-soft-text flex-1"
+                                >
+                                    Go Back
+                                </button>
+                            )}
+                            {currentStep < learnData[type]?.steps.length - 1 ? (
+                                <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setCurrentStep(prev => prev + 1)}
+                                    className="btn-primary bg-math-purple-dark text-white flex-1 py-4 flex items-center justify-center gap-2"
+                                >
+                                    Next Step <ArrowRight />
+                                </motion.button>
+                            ) : (
+                                <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setMode('setup')}
+                                    className="btn-primary bg-math-purple-dark text-white w-full py-4 text-xl flex items-center justify-center gap-2"
+                                >
+                                    I'm Ready to Play! <ArrowRight />
+                                </motion.button>
+                            )}
+                        </div>
                     </motion.div>
                 ) : mode === 'results' ? (
                     <motion.div
+                        id="math-game-results"
                         key="results"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -414,8 +656,8 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                         className="card p-10 text-center border-b-8 border-math-green-dark"
                     >
                         <Trophy size={80} className="mx-auto text-math-yellow-dark mb-6" />
-                        <h2 className="text-4xl font-black mb-2 text-soft-text">Game Over!</h2>
-                        <p className="text-xl text-soft-text/80 mb-8">Great effort on the {difficulty} level</p>
+                        <h2 className="text-4xl font-black mb-2 text-soft-text">{getScoreFeedback(score, totalQuestions).title}</h2>
+                        <p className="text-xl text-soft-text/80 mb-8">{getScoreFeedback(score, totalQuestions).msg}</p>
 
                         <div className="bg-math-blue/30 rounded-3xl p-8 mb-8">
                             <div className="text-6xl font-black text-math-purple-dark mb-2">{score} / {totalQuestions}</div>
@@ -423,9 +665,19 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                         </div>
 
                         <div className="flex flex-col gap-4">
-                            <button onClick={() => setMode('setup')} className="btn-primary bg-math-purple-dark text-white py-4 flex items-center justify-center gap-2">
-                                <RotateCcw /> Play Again
+                            <button
+                                onClick={() => captureScreen('math-game-results', `MathScore-${score}.png`)}
+                                className="btn-secondary py-4 bg-math-blue text-math-purple-dark font-bold flex items-center justify-center gap-2 hover:bg-math-blue/60 transition-colors"
+                            >
+                                <Camera size={20} /> Capture My Score!
                             </button>
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setMode('setup')}
+                                className="btn-primary bg-math-purple-dark text-white py-4 flex items-center justify-center gap-2"
+                            >
+                                <RotateCcw /> Play Again
+                            </motion.button>
                             <button onClick={onBack} className="btn-secondary py-4 text-soft-text font-bold">
                                 Back to Dashboard
                             </button>
@@ -443,6 +695,13 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                             <div className="text-xs font-bold text-math-purple-dark uppercase tracking-widest">
                                 Question {currentQuestionIndex + 1} of {totalQuestions}
                             </div>
+                            <button
+                                onClick={speakQuestion}
+                                className="p-2 rounded-full bg-math-blue text-math-purple-dark hover:bg-math-purple/20 transition-colors"
+                                title="Read Question"
+                            >
+                                <Volume2 size={24} />
+                            </button>
                             <div className="text-xs font-bold text-math-purple-dark uppercase tracking-widest">
                                 Score: {score}
                             </div>
@@ -545,6 +804,17 @@ const MathGame = ({ type, onBack, initialMode = 'learn', difficulty: propDifficu
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {mode === 'play' && (
+                <div className="mt-8 flex justify-center">
+                    <button
+                        onClick={() => setMode('learn')}
+                        className="text-soft-text/50 hover:text-math-purple-dark flex items-center gap-2 font-bold text-sm transition-colors"
+                    >
+                        <Lightbulb size={16} /> Need help? Look at the Learning Guide
+                    </button>
+                </div>
+            )}
         </motion.div>
     )
 }
